@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บันทึกหนี้คุณน้า</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap');
+
+        :root {
+            --bg-color: #f7f9fa;
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --color-danger: #e53e3e; 
+            --color-rent: #dd6b20;   
+            --color-tuition: #3182ce;
+            --color-success: #38a169;
+            --border-radius: 16px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Prompt', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; display: flex; justify-content: center; }
+        .container { max-width: 500px; width: 100%; }
+        h2 { text-align: center; margin-bottom: 20px; color: var(--text-main); }
+
+        /* --- Cards --- */
+        .card { background: var(--card-bg); border-radius: var(--border-radius); padding: 20px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03); margin-bottom: 15px; }
+        .total-card { text-align: center; border-top: 5px solid var(--color-danger); }
+        .total-amount { font-size: 2.5rem; font-weight: 600; color: var(--color-danger); margin: 10px 0; }
+
+        .grid-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .mini-card { text-align: center; padding: 15px; }
+        .mini-card p { font-size: 0.9rem; color: var(--text-muted); }
+        .mini-card h3 { font-size: 1.2rem; margin-top: 5px; }
+        
+        .c-rent { color: var(--color-rent); }
+        .c-tuition { color: var(--color-tuition); }
+        .c-repay { color: var(--color-success); }
+        .full-width { grid-column: span 2; border-top: 3px solid var(--color-success);}
+
+        /* --- Form --- */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-muted); }
+        input, select {
+            width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+            font-size: 1rem; background: var(--bg-color); outline: none; transition: 0.2s;
+        }
+        input:focus, select:focus { border-color: var(--color-tuition); }
+        
+        .btn-group { display: flex; gap: 10px; }
+        button {
+            flex: 1; padding: 15px; color: white; border: none; border-radius: 8px;
+            font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s;
+        }
+        .btn-submit { background: var(--text-main); }
+        .btn-submit:hover { background: #1a202c; }
+        .btn-submit.editing { background: #d69e2e; } 
+        .btn-cancel { background: #a0aec0; display: none; }
+        button:disabled { background: #cbd5e0; cursor: not-allowed; }
+
+        /* --- History Categories --- */
+        .history-section { margin-top: 30px; }
+        .category-block { margin-bottom: 25px; background: var(--card-bg); border-radius: 16px; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        
+        /* เปลี่ยน Header ให้กดได้ (ยุบ/กาง) */
+        .category-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; cursor: pointer; user-select: none;
+            transition: opacity 0.2s;
+        }
+        .category-header:hover { opacity: 0.7; }
+        .header-title { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; font-weight: 600; }
+        .toggle-icon { font-size: 0.8rem; color: var(--text-muted); transition: transform 0.3s; }
+        .category-total { font-weight: 600; font-size: 1.1rem; }
+
+        /* เมื่อถูกพับ ให้หมุนลูกศร */
+        .collapsed .toggle-icon { transform: rotate(-90deg); }
+
+        /* จำกัดความสูงของรายการและซ่อนตัว Scrollbar ให้ดูโมเดิร์น */
+        .history-list-wrapper {
+            transition: max-height 0.3s ease-out;
+            overflow: hidden;
+        }
+        .history-list { 
+            list-style: none; 
+            max-height: 350px; /* จำกัดความสูง ถ้ายาวเกินจะเลื่อนได้ */
+            overflow-y: auto; 
+            padding-right: 5px;
+            margin-top: 15px;
+        }
+        /* ตกแต่ง Scrollbar */
+        .history-list::-webkit-scrollbar { width: 6px; }
+        .history-list::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 8px; }
+        .history-list::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 8px; }
+        .history-list::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+
+        .history-item {
+            background: #f7f9fa; padding: 12px 15px; border-radius: 12px; margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0;
+        }
+        .item-main { flex: 1; }
+        .item-main p { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+        .item-actions { display: flex; gap: 8px; margin-left: 15px; }
+        .action-btn { padding: 6px 10px; font-size: 0.8rem; border-radius: 6px; flex: none; }
+        .btn-edit { background: #edf2f7; color: #4a5568; }
+        .btn-edit:hover { background: #e2e8f0; }
+        .btn-delete { background: #fff5f5; color: #c53030; }
+        .btn-delete:hover { background: #fed7d7; }
+        
+        .type-rent { border-left: 4px solid var(--color-rent); }
+        .type-tuition { border-left: 4px solid var(--color-tuition); }
+        .type-repay { border-left: 4px solid var(--color-success); }
+        .empty-text { font-size: 0.9rem; color: var(--text-muted); text-align: center; padding: 10px; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>บันทึกหนี้คุณน้า 📝</h2>
+
+    <!-- Dashboard -->
+    <div class="card total-card">
+        <p>ยอดหนี้คงเหลือที่ต้องคืน</p>
+        <div class="total-amount" id="grandTotal">0.00</div>
+        <p>บาท</p>
+    </div>
+
+    <div class="grid-cards">
+        <div class="card mini-card">
+            <p>ยืมค่าห้อง</p>
+            <h3 class="c-rent" id="roomTotal">0.00</h3>
+        </div>
+        <div class="card mini-card">
+            <p>ยืมค่าเทอม</p>
+            <h3 class="c-tuition" id="tuitionTotal">0.00</h3>
+        </div>
+        <div class="card mini-card full-width">
+            <p>คืนไปแล้วทั้งหมด</p>
+            <h3 class="c-repay" id="repaidTotal">0.00</h3>
+        </div>
+    </div>
+
+    <!-- Add/Edit Form -->
+    <div class="card" id="formSection">
+        <form id="addForm">
+            <div class="form-group">
+                <label>ประเภทรายการ</label>
+                <select id="type" required>
+                    <option value="tuition">ค่าเทอม (ยืม)</option>
+                    <option value="rent">ค่าห้อง (ยืม)</option>
+                    <option value="repay">คืนเงิน (จ่ายคืน)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>จำนวนเงิน (บาท)</label>
+                <input type="number" id="amount" placeholder="0.00" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label>บันทึกช่วยจำ</label>
+                <input type="text" id="note" placeholder="เช่น เทอม 1/69, ค่าห้องเดือนพฤษภา">
+            </div>
+            <div class="btn-group">
+                <button type="button" class="btn-cancel" id="cancelBtn">ยกเลิกแก้ไข</button>
+                <button type="submit" class="btn-submit" id="submitBtn">+ บันทึกรายการ</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- History Categories -->
+    <div class="history-section">
+        
+        <!-- หมวดค่าเทอม -->
+        <div class="category-block">
+            <div class="category-header" style="border-bottom-color: var(--color-tuition);" onclick="toggleSection('wrapper-tuition', this)">
+                <div class="header-title c-tuition"><span class="toggle-icon">▼</span> ประวัติยืมค่าเทอม</div>
+                <span class="category-total c-tuition" id="histTotalTuition">0.00 ฿</span>
+            </div>
+            <div class="history-list-wrapper" id="wrapper-tuition">
+                <ul class="history-list" id="list-tuition"></ul>
+            </div>
+        </div>
+
+        <!-- หมวดค่าห้อง -->
+        <div class="category-block">
+            <div class="category-header" style="border-bottom-color: var(--color-rent);" onclick="toggleSection('wrapper-rent', this)">
+                <div class="header-title c-rent"><span class="toggle-icon">▼</span> ประวัติยืมค่าห้อง</div>
+                <span class="category-total c-rent" id="histTotalRent">0.00 ฿</span>
+            </div>
+            <div class="history-list-wrapper" id="wrapper-rent">
+                <ul class="history-list" id="list-rent"></ul>
+            </div>
+        </div>
+
+        <!-- หมวดคืนเงิน -->
+        <div class="category-block">
+            <div class="category-header" style="border-bottom-color: var(--color-success);" onclick="toggleSection('wrapper-repay', this)">
+                <div class="header-title c-repay"><span class="toggle-icon">▼</span> ประวัติการคืนเงิน</div>
+                <span class="category-total c-repay" id="histTotalRepay">0.00 ฿</span>
+            </div>
+            <div class="history-list-wrapper" id="wrapper-repay">
+                <ul class="history-list" id="list-repay"></ul>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+    import { 
+        getFirestore, collection, addDoc, onSnapshot, query, orderBy, 
+        serverTimestamp, enableIndexedDbPersistence, doc, deleteDoc, updateDoc
+    } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAXqkYiYtmu4eoMit-0496auv7paI0-BPA",
+        authDomain: "term-8bf51.firebaseapp.com",
+        projectId: "term-8bf51",
+        storageBucket: "term-8bf51.firebasestorage.app",
+        messagingSenderId: "837049681382",
+        appId: "1:837049681382:web:1af21892ca07a94ef68227"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    enableIndexedDbPersistence(db).catch((err) => console.warn("Offline mode error: ", err.code));
+
+    const addForm = document.getElementById('addForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    
+    let currentEditId = null;
+
+    addForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'กำลังบันทึก...';
+        
+        const type = document.getElementById('type').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+        const note = document.getElementById('note').value;
+
+        try {
+            if (currentEditId) {
+                await updateDoc(doc(db, "loans", currentEditId), { type: type, amount: amount, note: note });
+                resetForm();
+            } else {
+                await addDoc(collection(db, "loans"), {
+                    type: type, amount: amount, note: note,
+                    dateStr: new Date().toLocaleDateString('th-TH'),
+                    timestamp: serverTimestamp()
+                });
+                addForm.reset();
+            }
+        } catch (error) {
+            console.error("Error saving document: ", error);
+            alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+        } finally {
+            submitBtn.disabled = false;
+            if(!currentEditId) submitBtn.innerText = '+ บันทึกรายการ';
+        }
+    });
+
+    cancelBtn.addEventListener('click', resetForm);
+
+    function resetForm() {
+        currentEditId = null;
+        addForm.reset();
+        submitBtn.innerText = '+ บันทึกรายการ';
+        submitBtn.classList.remove('editing');
+        cancelBtn.style.display = 'none';
+    }
+
+    document.addEventListener('click', async (e) => {
+        const deleteBtn = e.target.closest('.btn-delete');
+        if (deleteBtn && confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?')) {
+            await deleteDoc(doc(db, "loans", deleteBtn.getAttribute('data-id')));
+        }
+
+        const editBtn = e.target.closest('.btn-edit');
+        if (editBtn) {
+            currentEditId = editBtn.getAttribute('data-id');
+            document.getElementById('type').value = editBtn.getAttribute('data-type');
+            document.getElementById('amount').value = editBtn.getAttribute('data-amount');
+            document.getElementById('note').value = editBtn.getAttribute('data-note');
+            
+            submitBtn.innerText = '💾 บันทึกการแก้ไข';
+            submitBtn.classList.add('editing');
+            cancelBtn.style.display = 'block';
+            document.getElementById('formSection').scrollIntoView({ behavior: 'smooth' });
+            
+            // กางประวัติหมวดนั้นออกมาเผื่อดูตอนแก้
+            const typeStr = editBtn.getAttribute('data-type');
+            const wrapper = document.getElementById(`wrapper-${typeStr}`);
+            if(wrapper.style.display === 'none') {
+                wrapper.style.display = 'block';
+                wrapper.previousElementSibling.classList.remove('collapsed');
+            }
+        }
+    });
+
+    const q = query(collection(db, "loans"), orderBy("timestamp", "desc"));
+    
+    onSnapshot(q, (snapshot) => {
+        let roomSum = 0, tuitionSum = 0, repaySum = 0;
+        
+        const listTuition = document.getElementById('list-tuition');
+        const listRent = document.getElementById('list-rent');
+        const listRepay = document.getElementById('list-repay');
+
+        listTuition.innerHTML = ''; listRent.innerHTML = ''; listRepay.innerHTML = '';
+
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            const id = doc.id;
+            
+            let li = document.createElement('li');
+            li.className = `history-item type-${data.type}`;
+            
+            let amountColor = data.type === 'repay' ? 'c-repay' : (data.type === 'rent' ? 'c-rent' : 'c-tuition');
+            let sign = data.type === 'repay' ? '-' : '+';
+            let amountStr = data.amount.toLocaleString(undefined, {minimumFractionDigits: 2});
+
+            li.innerHTML = `
+                <div class="item-main">
+                    <div class="item-amount ${amountColor}" style="font-weight: 600;">
+                        ${sign}${amountStr} ฿
+                    </div>
+                    <p>${data.dateStr} ${data.note ? `| ${data.note}` : ''}</p>
+                </div>
+                <div class="item-actions">
+                    <button class="action-btn btn-edit" 
+                        data-id="${id}" data-type="${data.type}" data-amount="${data.amount}" data-note="${data.note}">✏️</button>
+                    <button class="action-btn btn-delete" data-id="${id}">🗑️</button>
+                </div>
+            `;
+
+            if (data.type === 'tuition') { tuitionSum += data.amount; listTuition.appendChild(li); } 
+            else if (data.type === 'rent') { roomSum += data.amount; listRent.appendChild(li); } 
+            else if (data.type === 'repay') { repaySum += data.amount; listRepay.appendChild(li); }
+        });
+
+        if(listTuition.children.length === 0) listTuition.innerHTML = '<p class="empty-text">ยังไม่มีประวัติ</p>';
+        if(listRent.children.length === 0) listRent.innerHTML = '<p class="empty-text">ยังไม่มีประวัติ</p>';
+        if(listRepay.children.length === 0) listRepay.innerHTML = '<p class="empty-text">ยังไม่มีประวัติ</p>';
+
+        const grandTotal = (roomSum + tuitionSum) - repaySum;
+
+        document.getElementById('roomTotal').innerText = roomSum.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('tuitionTotal').innerText = tuitionSum.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('repaidTotal').innerText = repaySum.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('grandTotal').innerText = grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2});
+
+        document.getElementById('histTotalTuition').innerText = tuitionSum.toLocaleString(undefined, {minimumFractionDigits: 2}) + ' ฿';
+        document.getElementById('histTotalRent').innerText = roomSum.toLocaleString(undefined, {minimumFractionDigits: 2}) + ' ฿';
+        document.getElementById('histTotalRepay').innerText = repaySum.toLocaleString(undefined, {minimumFractionDigits: 2}) + ' ฿';
+    });
+</script>
+
+<!-- สคริปต์สำหรับพับ/กาง ประวัติ -->
+<script>
+    function toggleSection(wrapperId, headerElement) {
+        const wrapper = document.getElementById(wrapperId);
+        // สลับ Class เพื่อหมุนไอคอน
+        headerElement.classList.toggle('collapsed');
+        // ซ่อน หรือ แสดง เนื้อหา
+        if (wrapper.style.display === "none") {
+            wrapper.style.display = "block";
+        } else {
+            wrapper.style.display = "none";
+        }
+    }
+</script>
+
+</body>
+</html>
